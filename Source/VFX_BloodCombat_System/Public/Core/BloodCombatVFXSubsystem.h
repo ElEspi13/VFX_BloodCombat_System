@@ -9,6 +9,9 @@
 
 class UNiagaraSystem;
 class UNiagaraComponent;
+class UDecalComponent;
+class UMaterialInterface;
+class UVfxBloodCombatConfigDataAsset;
 
 UCLASS()
 class VFX_BLOODCOMBAT_SYSTEM_API UBloodCombatVFXSubsystem : public UWorldSubsystem
@@ -16,6 +19,7 @@ class VFX_BLOODCOMBAT_SYSTEM_API UBloodCombatVFXSubsystem : public UWorldSubsyst
 	GENERATED_BODY()
 
 public:
+   virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
 	UFUNCTION(BlueprintCallable, Category = "BloodCombatVFX")
@@ -25,11 +29,30 @@ public:
 	UNiagaraComponent* SpawnImpact(ECombatImpactType Type, const FBloodCombatVFXParams& Params);
 
 	UFUNCTION(BlueprintCallable, Category = "BloodCombatVFX")
+	void SpawnImpactEffects(ECombatImpactType Type, const FBloodCombatVFXParams& Params);
+
+	UFUNCTION(BlueprintCallable, Category = "BloodCombatVFX")
 	UNiagaraComponent* SpawnBlood(EBloodEffectType Type, const FBloodCombatVFXParams& Params);
+
+	UFUNCTION(BlueprintCallable, Category = "BloodCombatVFX")
+	UDecalComponent* SpawnBloodDecal(const FBloodCombatVFXParams& Params);
+
+	UFUNCTION(BlueprintCallable, Category = "BloodCombatVFX")
+	void SetConfigDataAsset(UVfxBloodCombatConfigDataAsset* NewConfigDataAsset);
+
+	UFUNCTION(BlueprintCallable, Category = "BloodCombatExecute")
+	void SpawnBloodBurst(const FBloodCombatVFXParams& Params);
+
+	UFUNCTION(BlueprintCallable, Category = "BloodCombatExecute")
+	void SpawnBloodSpray(const FBloodCombatVFXParams& Params);
+
+	UFUNCTION(BlueprintCallable, Category = "BloodCombatExecute")
+	void SpawnBloodTrail(const FBloodCombatVFXParams& Params);
+	
 
 protected:
 	virtual UNiagaraSystem* ResolveImpactSystem(ECombatImpactType Type, EBloodSurfaceType SurfaceType) const;
-	virtual UNiagaraSystem* ResolveBloodSystem(EBloodEffectType Type, EBloodSurfaceType SurfaceType) const;
+ virtual UNiagaraSystem* ResolveBloodSystem(EBloodEffectType Type) const;
 
 	void ApplyParams(UNiagaraComponent* Component, const FBloodCombatVFXParams& Params) const;
 
@@ -39,6 +62,9 @@ private:
 
 	UFUNCTION()
 	void OnPooledSystemFinished(UNiagaraComponent* FinishedComponent);
+
+	UPROPERTY()
+	TObjectPtr<UVfxBloodCombatConfigDataAsset> ConfigDataAsset;
 
 	TMap<TObjectPtr<UNiagaraSystem>, TArray<TObjectPtr<UNiagaraComponent>>> AvailableComponents;
 	TMap<TObjectPtr<UNiagaraComponent>, TObjectPtr<UNiagaraSystem>> ActiveComponentSystems;

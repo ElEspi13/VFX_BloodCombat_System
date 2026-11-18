@@ -1,41 +1,65 @@
 #include "Data/VfxBloodCombatConfigDataAsset.h"
 
+#include "Materials/MaterialInterface.h"
 #include "NiagaraSystem.h"
+
+namespace
+{
+	UNiagaraSystem* GetImpactMappedSystem(const TArray<FVfxImpactMapping>& Mappings, ECombatImpactType ImpactType, EBloodSurfaceType SurfaceType, TSoftObjectPtr<UNiagaraSystem> FVfxImpactMapping::* Member)
+	{
+		for (const FVfxImpactMapping& Mapping : Mappings)
+		{
+			if (Mapping.ImpactType == ImpactType && Mapping.SurfaceType == SurfaceType)
+			{
+				return (Mapping.*Member).LoadSynchronous();
+			}
+		}
+
+		for (const FVfxImpactMapping& Mapping : Mappings)
+		{
+			if (Mapping.ImpactType == ImpactType && Mapping.SurfaceType == EBloodSurfaceType::Default)
+			{
+				return (Mapping.*Member).LoadSynchronous();
+			}
+		}
+
+		return nullptr;
+	}
+}
 
 UNiagaraSystem* UVfxBloodCombatConfigDataAsset::GetImpactSystem(ECombatImpactType ImpactType, EBloodSurfaceType SurfaceType) const
 {
-	for (const FVfxImpactMapping& Mapping : ImpactMappings)
-	{
-		if (Mapping.ImpactType == ImpactType && Mapping.SurfaceType == SurfaceType)
-		{
-			return Mapping.NiagaraSystem.LoadSynchronous();
-		}
-	}
+ return GetImpactMappedSystem(ImpactMappings, ImpactType, SurfaceType, &FVfxImpactMapping::NiagaraSystem);
+}
 
-	for (const FVfxImpactMapping& Mapping : ImpactMappings)
+UNiagaraSystem* UVfxBloodCombatConfigDataAsset::GetImpactSparkSystem(ECombatImpactType ImpactType, EBloodSurfaceType SurfaceType) const
+{
+	return GetImpactMappedSystem(ImpactMappings, ImpactType, SurfaceType, &FVfxImpactMapping::SparkSystem);
+}
+
+UNiagaraSystem* UVfxBloodCombatConfigDataAsset::GetImpactFlashSystem(ECombatImpactType ImpactType, EBloodSurfaceType SurfaceType) const
+{
+	return GetImpactMappedSystem(ImpactMappings, ImpactType, SurfaceType, &FVfxImpactMapping::FlashSystem);
+}
+
+UMaterialInterface* UVfxBloodCombatConfigDataAsset::GetBloodDecalMaterial() const
+{
+	for (const FVfxBloodMapping& Mapping : BloodMappings)
 	{
-		if (Mapping.ImpactType == ImpactType && Mapping.SurfaceType == EBloodSurfaceType::Default)
+     if (Mapping.BloodType == EBloodEffectType::Decal)
 		{
-			return Mapping.NiagaraSystem.LoadSynchronous();
+			return Mapping.DecalMaterial.LoadSynchronous();
 		}
 	}
 
 	return nullptr;
 }
 
-UNiagaraSystem* UVfxBloodCombatConfigDataAsset::GetBloodSystem(EBloodEffectType BloodType, EBloodSurfaceType SurfaceType) const
+UNiagaraSystem* UVfxBloodCombatConfigDataAsset::GetBloodSystem(EBloodEffectType BloodType) const
 {
 	for (const FVfxBloodMapping& Mapping : BloodMappings)
 	{
-		if (Mapping.BloodType == BloodType && Mapping.SurfaceType == SurfaceType)
-		{
-			return Mapping.NiagaraSystem.LoadSynchronous();
-		}
-	}
-
-	for (const FVfxBloodMapping& Mapping : BloodMappings)
-	{
-		if (Mapping.BloodType == BloodType && Mapping.SurfaceType == EBloodSurfaceType::Default)
+       if (Mapping.BloodType == BloodType)
 		{
 			return Mapping.NiagaraSystem.LoadSynchronous();
 		}

@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
+using System.IO;
 
 public class VFX_BloodCombat_System : ModuleRules
 {
@@ -11,6 +12,7 @@ public class VFX_BloodCombat_System : ModuleRules
 		PublicIncludePaths.AddRange(
 			new string[]
 			{
+               Path.Combine(ModuleDirectory, "Public")
 			}
 			);
 

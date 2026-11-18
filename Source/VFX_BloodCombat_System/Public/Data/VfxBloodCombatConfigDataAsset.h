@@ -8,6 +8,7 @@
 #include "VfxBloodCombatConfigDataAsset.generated.h"
 
 class UNiagaraSystem;
+class UMaterialInterface;
 
 USTRUCT(BlueprintType)
 struct FVfxImpactMapping
@@ -22,6 +23,15 @@ struct FVfxImpactMapping
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX")
 	TSoftObjectPtr<UNiagaraSystem> NiagaraSystem;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX|Impact")
+	TSoftObjectPtr<UNiagaraSystem> SparkSystem;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX|Impact")
+	TSoftObjectPtr<UNiagaraSystem> FlashSystem;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX|Decal")
+	TSoftObjectPtr<UMaterialInterface> DecalMaterial;
 };
 
 USTRUCT(BlueprintType)
@@ -33,10 +43,10 @@ struct FVfxBloodMapping
 	EBloodEffectType BloodType = EBloodEffectType::None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX")
-	EBloodSurfaceType SurfaceType = EBloodSurfaceType::Default;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX")
 	TSoftObjectPtr<UNiagaraSystem> NiagaraSystem;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX|Decal")
+	TSoftObjectPtr<UMaterialInterface> DecalMaterial;
 };
 
 UCLASS(BlueprintType)
@@ -55,5 +65,14 @@ public:
 	UNiagaraSystem* GetImpactSystem(ECombatImpactType ImpactType, EBloodSurfaceType SurfaceType) const;
 
 	UFUNCTION(BlueprintCallable, Category = "VFX|Config")
-	UNiagaraSystem* GetBloodSystem(EBloodEffectType BloodType, EBloodSurfaceType SurfaceType) const;
+	UNiagaraSystem* GetImpactSparkSystem(ECombatImpactType ImpactType, EBloodSurfaceType SurfaceType) const;
+
+	UFUNCTION(BlueprintCallable, Category = "VFX|Config")
+	UNiagaraSystem* GetImpactFlashSystem(ECombatImpactType ImpactType, EBloodSurfaceType SurfaceType) const;
+
+	UFUNCTION(BlueprintCallable, Category = "VFX|Config")
+    UNiagaraSystem* GetBloodSystem(EBloodEffectType BloodType) const;
+
+	UFUNCTION(BlueprintCallable, Category = "VFX|Config")
+ UMaterialInterface* GetBloodDecalMaterial() const;
 };

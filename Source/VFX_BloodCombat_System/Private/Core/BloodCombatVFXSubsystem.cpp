@@ -1,7 +1,24 @@
 
 #include "Core/BloodCombatVFXSubsystem.h"
+#include "Data/VfxBloodCombatConfigDataAsset.h"
+#include "Components/DecalComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
+#include "Kismet/GameplayStatics.h"
+
+void UBloodCombatVFXSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+
+	static const TCHAR* ConfigAssetPath = TEXT("/VFX_BloodCombat_System/Data/VFX_DataAsset.VFX_DataAsset");
+	ConfigDataAsset = LoadObject<UVfxBloodCombatConfigDataAsset>(nullptr, ConfigAssetPath);
+
+	if (!ConfigDataAsset)
+	{
+		UE_LOG(LogTemp, Error, TEXT("BloodCombatVFX: no se pudo cargar el Data Asset en %s"), ConfigAssetPath);
+	}
+}
 
 void UBloodCombatVFXSubsystem::Deinitialize()
 {
@@ -65,25 +82,106 @@ UNiagaraComponent* UBloodCombatVFXSubsystem::SpawnImpact(ECombatImpactType Type,
 	return SpawnSystem(System, Params);
 }
 
+void UBloodCombatVFXSubsystem::SpawnImpactEffects(ECombatImpactType Type, const FBloodCombatVFXParams& Params)
+{
+	if (!ConfigDataAsset)
+	{
+		return;
+	}
+
+	SpawnSystem(ConfigDataAsset->GetImpactSparkSystem(Type, Params.SurfaceType), Params);
+	SpawnSystem(ConfigDataAsset->GetImpactFlashSystem(Type, Params.SurfaceType), Params);
+}
+
+UDecalComponent* UBloodCombatVFXSubsystem::SpawnBloodDecal(const FBloodCombatVFXParams& Params)
+{
+	if (!ConfigDataAsset || !GetWorld())
+	{
+		return nullptr;
+	}
+
+  UMaterialInterface* Material = ConfigDataAsset->GetBloodDecalMaterial();
+	if (!Material)
+	{
+		return nullptr;
+	}
+
+	const FRotator DecalRotation = Params.Rotation.IsNearlyZero()
+		? Params.Normal.Rotation()
+		: Params.Rotation;
+
+	if (UPrimitiveComponent* HitComponent = Params.HitComponent.Get())
+	{
+		const FTransform ComponentTransform = HitComponent->GetComponentTransform();
+		return UGameplayStatics::SpawnDecalAttached(
+			Material,
+			Params.DecalSize,
+			HitComponent,
+			NAME_None,
+			ComponentTransform.InverseTransformPosition(Params.Location),
+			ComponentTransform.InverseTransformRotation(DecalRotation.Quaternion()).Rotator(),
+			EAttachLocation::KeepRelativeOffset,
+			Params.DecalLifeSpan);
+	}
+
+	return UGameplayStatics::SpawnDecalAtLocation(
+		GetWorld(),
+		Material,
+		Params.DecalSize,
+		Params.Location + Params.Normal * 0.5f,
+		DecalRotation,
+		Params.DecalLifeSpan);
+}
+
+void UBloodCombatVFXSubsystem::SetConfigDataAsset(UVfxBloodCombatConfigDataAsset* NewConfigDataAsset)
+{
+	ConfigDataAsset = NewConfigDataAsset;
+}
+
+void UBloodCombatVFXSubsystem::SpawnBloodBurst(const FBloodCombatVFXParams& Params)
+{
+	SpawnBlood(EBloodEffectType::Burst, Params);
+	return;
+}
+
 UNiagaraComponent* UBloodCombatVFXSubsystem::SpawnBlood(EBloodEffectType Type, const FBloodCombatVFXParams& Params)
 {
-	UNiagaraSystem* System = ResolveBloodSystem(Type, Params.SurfaceType);
+    if (!ConfigDataAsset)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BloodCombatVFX: no hay Data Asset configurado para el efecto %d."), static_cast<int32>(Type));
+		return nullptr;
+	}
+
+	UNiagaraSystem* System = ResolveBloodSystem(Type);
 	if (!System)
 	{
+     UE_LOG(LogTemp, Warning, TEXT("BloodCombatVFX: no hay Niagara configurado para el efecto de sangre %d."), static_cast<int32>(Type));
 		return nullptr;
 	}
 
 	return SpawnSystem(System, Params);
 }
 
-UNiagaraSystem* UBloodCombatVFXSubsystem::ResolveImpactSystem(ECombatImpactType Type, EBloodSurfaceType SurfaceType) const
+void UBloodCombatVFXSubsystem::SpawnBloodSpray(const FBloodCombatVFXParams& Params)
 {
-	return nullptr;
+	SpawnBlood(EBloodEffectType::Spray, Params);
+	return;
 }
 
-UNiagaraSystem* UBloodCombatVFXSubsystem::ResolveBloodSystem(EBloodEffectType Type, EBloodSurfaceType SurfaceType) const
+void UBloodCombatVFXSubsystem::SpawnBloodTrail(const FBloodCombatVFXParams& Params)
 {
-	return nullptr;
+	SpawnBlood(EBloodEffectType::Trail, Params);
+	return;
+}
+
+UNiagaraSystem* UBloodCombatVFXSubsystem::ResolveImpactSystem(ECombatImpactType Type, EBloodSurfaceType SurfaceType) const
+{
+ return ConfigDataAsset ? ConfigDataAsset->GetImpactSystem(Type, SurfaceType) : nullptr;
+}
+
+UNiagaraSystem* UBloodCombatVFXSubsystem::ResolveBloodSystem(EBloodEffectType Type) const
+{
+ return ConfigDataAsset ? ConfigDataAsset->GetBloodSystem(Type) : nullptr;
 }
 
 void UBloodCombatVFXSubsystem::ApplyParams(UNiagaraComponent* Component, const FBloodCombatVFXParams& Params) const

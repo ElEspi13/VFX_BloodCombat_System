@@ -66,6 +66,9 @@ private:
 	UPROPERTY()
 	TObjectPtr<UVfxBloodCombatConfigDataAsset> ConfigDataAsset;
 
-	TMap<TObjectPtr<UNiagaraSystem>, TArray<TObjectPtr<UNiagaraComponent>>> AvailableComponents;
-	TMap<TObjectPtr<UNiagaraComponent>, TObjectPtr<UNiagaraSystem>> ActiveComponentSystems;
+	UPROPERTY()
+	TArray<TObjectPtr<UNiagaraComponent>> AllComponents;
+
+	TMap<TObjectPtr<UNiagaraSystem>, TArray<TWeakObjectPtr<UNiagaraComponent>>> AvailableComponents;
+	TMap<TWeakObjectPtr<UNiagaraComponent>, TObjectPtr<UNiagaraSystem>> ActiveComponentSystems;
 };

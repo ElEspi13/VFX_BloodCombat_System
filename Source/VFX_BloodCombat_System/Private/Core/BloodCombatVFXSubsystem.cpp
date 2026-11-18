@@ -22,27 +22,17 @@ void UBloodCombatVFXSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UBloodCombatVFXSubsystem::Deinitialize()
 {
-	for (auto& Pair : AvailableComponents)
+	for (const TObjectPtr<UNiagaraComponent>& ComponentPtr : AllComponents)
 	{
-		for (UNiagaraComponent* Component : Pair.Value)
-		{
-			if (Component)
-			{
-				Component->OnSystemFinished.RemoveAll(this);
-				Component->DeactivateImmediate();
-				Component->DestroyComponent();
-			}
-		}
-	}
-	AvailableComponents.Empty();
-
-	for (auto& Pair : ActiveComponentSystems)
-	{
-		if (UNiagaraComponent* Component = Pair.Key)
+		if (UNiagaraComponent* Component = ComponentPtr.Get())
 		{
 			Component->OnSystemFinished.RemoveAll(this);
+			Component->DeactivateImmediate();
+			Component->DestroyComponent();
 		}
 	}
+	AllComponents.Empty();
+	AvailableComponents.Empty();
 	ActiveComponentSystems.Empty();
 
 	Super::Deinitialize();
@@ -65,8 +55,8 @@ UNiagaraComponent* UBloodCombatVFXSubsystem::SpawnSystem(UNiagaraSystem* System,
 	Component->SetWorldLocationAndRotation(Params.Location, SpawnRotation, false, nullptr, ETeleportType::TeleportPhysics);
 	Component->SetWorldScale3D(FVector(Params.Scale));
 
-	ApplyParams(Component, Params);
 	Component->Activate(true);
+	ApplyParams(Component, Params);
 
 	return Component;
 }
@@ -216,10 +206,10 @@ UNiagaraComponent* UBloodCombatVFXSubsystem::AcquireComponent(UNiagaraSystem* Sy
 		return nullptr;
 	}
 
-	TArray<TObjectPtr<UNiagaraComponent>>& Pool = AvailableComponents.FindOrAdd(System);
+	TArray<TWeakObjectPtr<UNiagaraComponent>>& Pool = AvailableComponents.FindOrAdd(System);
 	while (Pool.Num() > 0)
 	{
-		UNiagaraComponent* Component = Pool.Pop(EAllowShrinking::No);
+		UNiagaraComponent* Component = Pool.Pop(EAllowShrinking::No).Get();
 		if (IsValid(Component))
 		{
 			ActiveComponentSystems.Add(Component, System);
@@ -237,6 +227,7 @@ UNiagaraComponent* UBloodCombatVFXSubsystem::AcquireComponent(UNiagaraSystem* Sy
 	NewComponent->bAutoActivate = false;
 	NewComponent->RegisterComponentWithWorld(GetWorld());
 	NewComponent->OnSystemFinished.AddDynamic(this, &UBloodCombatVFXSubsystem::OnPooledSystemFinished);
+	AllComponents.Add(NewComponent);
 
 	ActiveComponentSystems.Add(NewComponent, System);
 	return NewComponent;

@@ -48,7 +48,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "BloodCombatExecute")
 	void SpawnBloodTrail(const FBloodCombatVFXParams& Params);
-	
+
+	UFUNCTION(BlueprintCallable, Category = "BloodCombatVFX")
+	UNiagaraComponent* StartBloodTrail(const FBloodCombatVFXParams& Params);
+
+	UFUNCTION(BlueprintCallable, Category = "BloodCombatVFX")
+	void UpdateBloodTrail(UNiagaraComponent* TrailComponent, const FVector& WorldPosition);
+
+	UFUNCTION(BlueprintCallable, Category = "BloodCombatVFX")
+	void StopBloodTrail(UNiagaraComponent* TrailComponent);
 
 protected:
 	virtual UNiagaraSystem* ResolveImpactSystem(ECombatImpactType Type, EBloodSurfaceType SurfaceType) const;

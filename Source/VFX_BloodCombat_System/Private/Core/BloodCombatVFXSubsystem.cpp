@@ -164,6 +164,59 @@ void UBloodCombatVFXSubsystem::SpawnBloodTrail(const FBloodCombatVFXParams& Para
 	return;
 }
 
+UNiagaraComponent* UBloodCombatVFXSubsystem::StartBloodTrail(const FBloodCombatVFXParams& Params)
+{
+	UNiagaraSystem* System = ResolveBloodSystem(EBloodEffectType::Trail);
+	if (!System)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BloodCombatVFX: no hay Niagara configurado para el trail de sangre."));
+		return nullptr;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("BloodCombatVFX: StartBloodTrail system=%s location=%s"),
+		*System->GetName(), *Params.Location.ToString());
+
+	UNiagaraComponent* TrailComponent = SpawnSystem(System, Params);
+	UE_LOG(LogTemp, Warning, TEXT("BloodCombatVFX: StartBloodTrail componente=%s"),
+		TrailComponent ? *TrailComponent->GetName() : TEXT("NULL"));
+
+	if (TrailComponent)
+	{
+		TrailComponent->SetVariablePosition(FName(TEXT("User.TrailPosition")), Params.Location);
+	}
+
+	return TrailComponent;
+}
+
+void UBloodCombatVFXSubsystem::UpdateBloodTrail(UNiagaraComponent* TrailComponent, const FVector& WorldPosition)
+{
+	if (!IsValid(TrailComponent))
+	{
+		return;
+	}
+
+	static int32 TrailUpdateLogCounter = 0;
+	if ((TrailUpdateLogCounter++ % 30) == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BloodCombatVFX: UpdateBloodTrail componente=%s pos=%s"),
+			*TrailComponent->GetName(), *WorldPosition.ToString());
+	}
+
+	TrailComponent->SetVariablePosition(FName(TEXT("User.TrailPosition")), WorldPosition);
+}
+
+void UBloodCombatVFXSubsystem::StopBloodTrail(UNiagaraComponent* TrailComponent)
+{
+	if (!IsValid(TrailComponent))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BloodCombatVFX: StopBloodTrail componente=INVALIDO"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("BloodCombatVFX: StopBloodTrail componente=%s"), *TrailComponent->GetName());
+	ReleaseComponent(TrailComponent);
+}
+
 UNiagaraSystem* UBloodCombatVFXSubsystem::ResolveImpactSystem(ECombatImpactType Type, EBloodSurfaceType SurfaceType) const
 {
  return ConfigDataAsset ? ConfigDataAsset->GetImpactSystem(Type, SurfaceType) : nullptr;

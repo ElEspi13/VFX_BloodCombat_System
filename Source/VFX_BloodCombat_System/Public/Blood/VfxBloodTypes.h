@@ -11,7 +11,8 @@ enum class EBloodEffectType : uint8
 	Burst UMETA(DisplayName = "Burst"),
 	Droplets UMETA(DisplayName = "Droplets"),
 	Decal UMETA(DisplayName = "Decal"),
-	Trail UMETA(DisplayName = "Trail")
+	Trail UMETA(DisplayName = "Trail"),
+	SwordBloodTrail UMETA(DisplayName = "Sword Blood Trail")
 };
 
 USTRUCT(BlueprintType)

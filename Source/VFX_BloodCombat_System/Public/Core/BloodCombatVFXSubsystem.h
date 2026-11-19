@@ -9,6 +9,7 @@
 
 class UNiagaraSystem;
 class UNiagaraComponent;
+class USkeletalMeshComponent;
 class UDecalComponent;
 class UMaterialInterface;
 class UVfxBloodCombatConfigDataAsset;
@@ -58,6 +59,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "BloodCombatVFX")
 	void StopBloodTrail(UNiagaraComponent* TrailComponent);
 
+	UFUNCTION(BlueprintCallable, Category = "BloodCombatVFX")
+	UNiagaraComponent* StartSwordBloodTrail(
+		const FBloodCombatVFXParams& Params,
+		USkeletalMeshComponent* SwordMesh,
+		const TArray<FName>& FilteredSockets);
+
+	UFUNCTION(BlueprintCallable, Category = "BloodCombatVFX")
+	void StopSwordBloodTrail(UNiagaraComponent* TrailComponent);
+
 protected:
 	virtual UNiagaraSystem* ResolveImpactSystem(ECombatImpactType Type, EBloodSurfaceType SurfaceType) const;
  virtual UNiagaraSystem* ResolveBloodSystem(EBloodEffectType Type) const;
@@ -65,6 +75,16 @@ protected:
 	void ApplyParams(UNiagaraComponent* Component, const FBloodCombatVFXParams& Params) const;
 
 private:
+	UNiagaraComponent* SpawnSystemInternal(
+		UNiagaraSystem* System,
+		const FBloodCombatVFXParams& Params,
+		TFunction<void(UNiagaraComponent*)> SetupComponent);
+
+	UNiagaraComponent* StartTrail(
+		EBloodEffectType Type,
+		const FBloodCombatVFXParams& Params,
+		TFunction<void(UNiagaraComponent*)> SetupComponent = nullptr);
+
 	UNiagaraComponent* AcquireComponent(UNiagaraSystem* System);
 	void ReleaseComponent(UNiagaraComponent* Component);
 

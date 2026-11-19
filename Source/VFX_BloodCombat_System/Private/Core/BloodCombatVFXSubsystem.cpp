@@ -3,7 +3,9 @@
 #include "Data/VfxBloodCombatConfigDataAsset.h"
 #include "Components/DecalComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -40,6 +42,14 @@ void UBloodCombatVFXSubsystem::Deinitialize()
 
 UNiagaraComponent* UBloodCombatVFXSubsystem::SpawnSystem(UNiagaraSystem* System, const FBloodCombatVFXParams& Params)
 {
+	return SpawnSystemInternal(System, Params, nullptr);
+}
+
+UNiagaraComponent* UBloodCombatVFXSubsystem::SpawnSystemInternal(
+	UNiagaraSystem* System,
+	const FBloodCombatVFXParams& Params,
+	TFunction<void(UNiagaraComponent*)> SetupComponent)
+{
 	if (!System || !GetWorld())
 	{
 		return nullptr;
@@ -53,10 +63,15 @@ UNiagaraComponent* UBloodCombatVFXSubsystem::SpawnSystem(UNiagaraSystem* System,
 
 	const FRotator SpawnRotation = Params.Rotation.IsNearlyZero() ? Params.Normal.Rotation() : Params.Rotation;
 	Component->SetWorldLocationAndRotation(Params.Location, SpawnRotation, false, nullptr, ETeleportType::TeleportPhysics);
-	Component->SetWorldScale3D(FVector(Params.Scale));
+
+	ApplyParams(Component, Params);
+
+	if (SetupComponent)
+	{
+		SetupComponent(Component);
+	}
 
 	Component->Activate(true);
-	ApplyParams(Component, Params);
 
 	return Component;
 }
@@ -166,20 +181,50 @@ void UBloodCombatVFXSubsystem::SpawnBloodTrail(const FBloodCombatVFXParams& Para
 
 UNiagaraComponent* UBloodCombatVFXSubsystem::StartBloodTrail(const FBloodCombatVFXParams& Params)
 {
-	UNiagaraSystem* System = ResolveBloodSystem(EBloodEffectType::Trail);
-	if (!System)
+	return StartTrail(EBloodEffectType::Trail, Params);
+}
+
+UNiagaraComponent* UBloodCombatVFXSubsystem::StartSwordBloodTrail(
+	const FBloodCombatVFXParams& Params,
+	USkeletalMeshComponent* SwordMesh,
+	const TArray<FName>& FilteredSockets)
+{
+	if (!SwordMesh || FilteredSockets.Num() < 2)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("BloodCombatVFX: no hay Niagara configurado para el trail de sangre."));
+		UE_LOG(LogTemp, Warning, TEXT("BloodCombatVFX: no se pudo iniciar el trail de espada; faltan malla o sockets."));
 		return nullptr;
 	}
 
-	UNiagaraComponent* TrailComponent = SpawnSystem(System, Params);
-	if (TrailComponent)
+	return StartTrail(EBloodEffectType::SwordBloodTrail, Params, [SwordMesh, FilteredSockets](UNiagaraComponent* TrailComponent)
 	{
-		TrailComponent->SetVariablePosition(FName(TEXT("User.TrailPosition")), Params.Location);
+		UNiagaraFunctionLibrary::OverrideSystemUserVariableSkeletalMeshComponent(
+			TrailComponent, TEXT("User.SwordMesh"), SwordMesh);
+		UNiagaraFunctionLibrary::SetSkeletalMeshDataInterfaceFilteredSockets(
+			TrailComponent, TEXT("User.SwordMesh"), FilteredSockets);
+	});
+}
+
+UNiagaraComponent* UBloodCombatVFXSubsystem::StartTrail(
+	EBloodEffectType Type,
+	const FBloodCombatVFXParams& Params,
+	TFunction<void(UNiagaraComponent*)> SetupComponent)
+{
+	UNiagaraSystem* System = ResolveBloodSystem(Type);
+	if (!System)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BloodCombatVFX: no hay Niagara configurado para el trail de sangre (%d)."), static_cast<int32>(Type));
+		return nullptr;
 	}
 
-	return TrailComponent;
+	return SpawnSystemInternal(System, Params, [Params, SetupComponent](UNiagaraComponent* TrailComponent) mutable
+	{
+		TrailComponent->SetVariablePosition(FName(TEXT("User.TrailPosition")), Params.Location);
+
+		if (SetupComponent)
+		{
+			SetupComponent(TrailComponent);
+		}
+	});
 }
 
 void UBloodCombatVFXSubsystem::UpdateBloodTrail(UNiagaraComponent* TrailComponent, const FVector& WorldPosition)
@@ -200,6 +245,11 @@ void UBloodCombatVFXSubsystem::StopBloodTrail(UNiagaraComponent* TrailComponent)
 	}
 
 	ReleaseComponent(TrailComponent);
+}
+
+void UBloodCombatVFXSubsystem::StopSwordBloodTrail(UNiagaraComponent* TrailComponent)
+{
+	StopBloodTrail(TrailComponent);
 }
 
 UNiagaraSystem* UBloodCombatVFXSubsystem::ResolveImpactSystem(ECombatImpactType Type, EBloodSurfaceType SurfaceType) const

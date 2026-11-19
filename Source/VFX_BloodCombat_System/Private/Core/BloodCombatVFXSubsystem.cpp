@@ -173,13 +173,7 @@ UNiagaraComponent* UBloodCombatVFXSubsystem::StartBloodTrail(const FBloodCombatV
 		return nullptr;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("BloodCombatVFX: StartBloodTrail system=%s location=%s"),
-		*System->GetName(), *Params.Location.ToString());
-
 	UNiagaraComponent* TrailComponent = SpawnSystem(System, Params);
-	UE_LOG(LogTemp, Warning, TEXT("BloodCombatVFX: StartBloodTrail componente=%s"),
-		TrailComponent ? *TrailComponent->GetName() : TEXT("NULL"));
-
 	if (TrailComponent)
 	{
 		TrailComponent->SetVariablePosition(FName(TEXT("User.TrailPosition")), Params.Location);
@@ -195,13 +189,6 @@ void UBloodCombatVFXSubsystem::UpdateBloodTrail(UNiagaraComponent* TrailComponen
 		return;
 	}
 
-	static int32 TrailUpdateLogCounter = 0;
-	if ((TrailUpdateLogCounter++ % 30) == 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("BloodCombatVFX: UpdateBloodTrail componente=%s pos=%s"),
-			*TrailComponent->GetName(), *WorldPosition.ToString());
-	}
-
 	TrailComponent->SetVariablePosition(FName(TEXT("User.TrailPosition")), WorldPosition);
 }
 
@@ -209,11 +196,9 @@ void UBloodCombatVFXSubsystem::StopBloodTrail(UNiagaraComponent* TrailComponent)
 {
 	if (!IsValid(TrailComponent))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("BloodCombatVFX: StopBloodTrail componente=INVALIDO"));
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("BloodCombatVFX: StopBloodTrail componente=%s"), *TrailComponent->GetName());
 	ReleaseComponent(TrailComponent);
 }
 

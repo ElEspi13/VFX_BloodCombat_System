@@ -74,5 +74,8 @@ public:
     UNiagaraSystem* GetBloodSystem(EBloodEffectType BloodType) const;
 
 	UFUNCTION(BlueprintCallable, Category = "VFX|Config")
- UMaterialInterface* GetBloodDecalMaterial() const;
+  UMaterialInterface* GetBloodDecalMaterial() const;
+
+	UFUNCTION(BlueprintCallable, Category = "VFX|Config")
+	UMaterialInterface* GetBloodDecalMaterialForEffect(EBloodEffectType BloodType) const;
 };

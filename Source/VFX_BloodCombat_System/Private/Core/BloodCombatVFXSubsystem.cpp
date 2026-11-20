@@ -8,6 +8,8 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/Actor.h"
+#include "UObject/UnrealType.h"
 
 void UBloodCombatVFXSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -33,6 +35,17 @@ void UBloodCombatVFXSubsystem::Deinitialize()
 			Component->DestroyComponent();
 		}
 	}
+	for (const TObjectPtr<AActor>& HandlerPtr : AllDecalHandlers)
+	{
+		if (AActor* Handler = HandlerPtr.Get())
+		{
+			Handler->Destroy();
+		}
+	}
+	AllDecalHandlers.Empty();
+	AvailableDecalHandlers.Empty();
+	ActiveDecalHandlers.Empty();
+
 	AllComponents.Empty();
 	AvailableComponents.Empty();
 	ActiveComponentSystems.Empty();
@@ -143,6 +156,130 @@ void UBloodCombatVFXSubsystem::SetConfigDataAsset(UVfxBloodCombatConfigDataAsset
 	ConfigDataAsset = NewConfigDataAsset;
 }
 
+AActor* UBloodCombatVFXSubsystem::AcquireDecalHandler()
+{
+	if (!GetWorld())
+	{
+		return nullptr;
+	}
+
+	while (AvailableDecalHandlers.Num() > 0)
+	{
+		AActor* Handler = AvailableDecalHandlers.Pop(EAllowShrinking::No).Get();
+		if (IsValid(Handler))
+		{
+			return Handler;
+		}
+	}
+
+	static const TCHAR* HandlerClassPath = TEXT("/VFX_BloodCombat_System/Blueprints/BP_DecalComponent.BP_DecalComponent_C");
+	UClass* HandlerClass = LoadClass<AActor>(nullptr, HandlerClassPath);
+	if (!HandlerClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BloodCombatVFX: no se pudo cargar el handler de decals en %s"), HandlerClassPath);
+		return nullptr;
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	AActor* Handler = GetWorld()->SpawnActor<AActor>(
+		HandlerClass,
+		FVector::ZeroVector,
+		FRotator::ZeroRotator,
+		SpawnParams);
+
+	if (!Handler)
+	{
+		return nullptr;
+	}
+
+	AllDecalHandlers.Add(Handler);
+	return Handler;
+}
+
+void UBloodCombatVFXSubsystem::SetupDecalHandler(
+	UNiagaraComponent* Component,
+	EBloodEffectType Type,
+	const FBloodCombatVFXParams& Params)
+{
+	if (!Component || !ConfigDataAsset)
+	{
+		return;
+	}
+
+	UMaterialInterface* DecalMaterial = ConfigDataAsset->GetBloodDecalMaterialForEffect(Type);
+	if (!DecalMaterial)
+	{
+		return;
+	}
+
+	AActor* Handler = AcquireDecalHandler();
+	if (!Handler)
+	{
+		return;
+	}
+
+	SetObjectProperty(Handler, FName(TEXT("MaterialDecal")), DecalMaterial);
+	SetObjectProperty(Handler, FName(TEXT("NiagaraSystemBurst")), Component->GetAsset());
+	SetVectorProperty(Handler, FName(TEXT("TamanoDecal")), Params.DecalSize);
+
+	Component->SetVariableObject(FName(TEXT("User.CallbackHandler")), Handler);
+	ActiveDecalHandlers.Add(Component, Handler);
+}
+
+void UBloodCombatVFXSubsystem::ReleaseDecalHandler(UNiagaraComponent* Component)
+{
+	AActor** HandlerPtr = ActiveDecalHandlers.Find(Component);
+	if (!HandlerPtr)
+	{
+		return;
+	}
+
+	AActor* Handler = *HandlerPtr;
+	if (Component)
+	{
+		Component->SetVariableObject(FName(TEXT("User.CallbackHandler")), nullptr);
+	}
+
+	if (IsValid(Handler))
+	{
+		SetObjectProperty(Handler, FName(TEXT("MaterialDecal")), nullptr);
+		SetObjectProperty(Handler, FName(TEXT("NiagaraSystemBurst")), nullptr);
+		AvailableDecalHandlers.Add(Handler);
+	}
+
+	ActiveDecalHandlers.Remove(Component);
+}
+
+void UBloodCombatVFXSubsystem::SetObjectProperty(AActor* Actor, FName PropertyName, UObject* Value)
+{
+	if (!Actor)
+	{
+		return;
+	}
+
+	if (FObjectProperty* Property = FindFProperty<FObjectProperty>(Actor->GetClass(), PropertyName))
+	{
+		Property->SetObjectPropertyValue(Property->ContainerPtrToValuePtr<void>(Actor), Value);
+	}
+}
+
+void UBloodCombatVFXSubsystem::SetVectorProperty(AActor* Actor, FName PropertyName, const FVector& Value)
+{
+	if (!Actor)
+	{
+		return;
+	}
+
+	if (FStructProperty* Property = FindFProperty<FStructProperty>(Actor->GetClass(), PropertyName))
+	{
+		if (Property->Struct == TBaseStructure<FVector>::Get())
+		{
+			*Property->ContainerPtrToValuePtr<FVector>(Actor) = Value;
+		}
+	}
+}
+
 void UBloodCombatVFXSubsystem::SpawnBloodBurst(const FBloodCombatVFXParams& Params)
 {
 	SpawnBlood(EBloodEffectType::Burst, Params);
@@ -164,7 +301,10 @@ UNiagaraComponent* UBloodCombatVFXSubsystem::SpawnBlood(EBloodEffectType Type, c
 		return nullptr;
 	}
 
-	return SpawnSystem(System, Params);
+	return SpawnSystemInternal(System, Params, [this, Type, Params](UNiagaraComponent* Component)
+	{
+		SetupDecalHandler(Component, Type, Params);
+	});
 }
 
 void UBloodCombatVFXSubsystem::SpawnBloodSpray(const FBloodCombatVFXParams& Params)
@@ -336,6 +476,7 @@ void UBloodCombatVFXSubsystem::ReleaseComponent(UNiagaraComponent* Component)
 		return;
 	}
 
+	ReleaseDecalHandler(Component);
 	Component->DeactivateImmediate();
 	ActiveComponentSystems.Remove(Component);
 	AvailableComponents.FindOrAdd(SystemPtr->Get()).Add(Component);

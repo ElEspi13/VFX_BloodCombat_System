@@ -55,6 +55,19 @@ UMaterialInterface* UVfxBloodCombatConfigDataAsset::GetBloodDecalMaterial() cons
 	return nullptr;
 }
 
+UMaterialInterface* UVfxBloodCombatConfigDataAsset::GetBloodDecalMaterialForEffect(EBloodEffectType BloodType) const
+{
+	for (const FVfxBloodMapping& Mapping : BloodMappings)
+	{
+		if (Mapping.BloodType == BloodType)
+		{
+			return Mapping.DecalMaterial.LoadSynchronous();
+		}
+	}
+
+	return nullptr;
+}
+
 UNiagaraSystem* UVfxBloodCombatConfigDataAsset::GetBloodSystem(EBloodEffectType BloodType) const
 {
 	for (const FVfxBloodMapping& Mapping : BloodMappings)

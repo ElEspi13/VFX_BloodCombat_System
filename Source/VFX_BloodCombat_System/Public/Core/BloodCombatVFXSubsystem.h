@@ -13,6 +13,7 @@ class USkeletalMeshComponent;
 class UDecalComponent;
 class UMaterialInterface;
 class UVfxBloodCombatConfigDataAsset;
+class AActor;
 
 UCLASS()
 class VFX_BLOODCOMBAT_SYSTEM_API UBloodCombatVFXSubsystem : public UWorldSubsystem
@@ -88,6 +89,12 @@ private:
 	UNiagaraComponent* AcquireComponent(UNiagaraSystem* System);
 	void ReleaseComponent(UNiagaraComponent* Component);
 
+	AActor* AcquireDecalHandler();
+	void SetupDecalHandler(UNiagaraComponent* Component, EBloodEffectType Type, const FBloodCombatVFXParams& Params);
+	void ReleaseDecalHandler(UNiagaraComponent* Component);
+	void SetObjectProperty(AActor* Actor, FName PropertyName, UObject* Value);
+	void SetVectorProperty(AActor* Actor, FName PropertyName, const FVector& Value);
+
 	UFUNCTION()
 	void OnPooledSystemFinished(UNiagaraComponent* FinishedComponent);
 
@@ -99,4 +106,12 @@ private:
 
 	TMap<TObjectPtr<UNiagaraSystem>, TArray<TWeakObjectPtr<UNiagaraComponent>>> AvailableComponents;
 	TMap<TWeakObjectPtr<UNiagaraComponent>, TObjectPtr<UNiagaraSystem>> ActiveComponentSystems;
+
+	UPROPERTY()
+	TArray<TObjectPtr<AActor>> AllDecalHandlers;
+
+	UPROPERTY()
+	TArray<TObjectPtr<AActor>> AvailableDecalHandlers;
+
+	TMap<UNiagaraComponent*, AActor*> ActiveDecalHandlers;
 };

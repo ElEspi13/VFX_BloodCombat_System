@@ -297,6 +297,10 @@ Content/
 
 ## Licencia
 
-Añade aquí la información de licencia (por ejemplo, MIT o una licencia privada del proyecto).
+Licenciado bajo la [licencia MIT](LICENSE).
+
+Copyright (c) 2026 Espi.
+
+Esta licencia aplica a todo el plugin, incluido el código C++ y todos los recursos de `Content/` (Blueprints, sistemas Niagara, materiales y texturas).
 
 Creado por **Espi**.

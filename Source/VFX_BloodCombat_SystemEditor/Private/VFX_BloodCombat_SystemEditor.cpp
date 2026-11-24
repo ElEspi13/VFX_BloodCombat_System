@@ -6,6 +6,7 @@
 
 void FVFX_BloodCombat_SystemEditorModule::StartupModule()
 {
+	// No editor hooks are registered yet; this module is reserved for future VFX tooling.
 }
 
 void FVFX_BloodCombat_SystemEditorModule::ShutdownModule()

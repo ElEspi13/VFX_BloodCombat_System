@@ -4,11 +4,15 @@
 
 #include "Modules/ModuleManager.h"
 
+/**
+ * Runtime entry point for the blood combat VFX plugin.
+ * Registers no gameplay logic itself: spawning and pooling are owned by UBloodCombatVFXSubsystem.
+ */
 class FVFX_BloodCombat_SystemModule : public IModuleInterface
 {
 public:
 
-	/** IModuleInterface implementation */
+	/** IModuleInterface implementation. */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 };

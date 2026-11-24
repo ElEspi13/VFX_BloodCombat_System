@@ -19,6 +19,7 @@ UActorComponent* UVfxBloodLibrary::SpawnBloodEffect(const UObject* WorldContextO
         return nullptr;
     }
 
+    // Decals are components but not Niagara systems, so they take a separate subsystem path.
     if (EffectType == EBloodEffectType::Decal)
     {
         return Subsystem->SpawnBloodDecal(Params);

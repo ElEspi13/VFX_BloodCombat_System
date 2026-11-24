@@ -10,6 +10,7 @@ UNiagaraComponent* UVfxCombatLibrary::SpawnImpactEffect(const UObject* WorldCont
 		return nullptr;
 	}
 
+	// Resolve the world from the Blueprint context object; all actual work stays in the subsystem.
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull);
 	UBloodCombatVFXSubsystem* Subsystem = World ? World->GetSubsystem<UBloodCombatVFXSubsystem>() : nullptr;
 	return Subsystem ? Subsystem->SpawnImpact(ImpactType, Params) : nullptr;

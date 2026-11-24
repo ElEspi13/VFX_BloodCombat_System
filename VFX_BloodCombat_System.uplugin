@@ -3,7 +3,7 @@
 	"Version": 1,
 	"VersionName": "1.0",
 	"FriendlyName": "VFX_BloodCombat_System",
-	"Description": "",
+	"Description": "Pooled Niagara and decal blood combat effects with a persistent procedural blood brush.",
 	"Category": "Other",
 	"CreatedBy": "Espi",
 	"CreatedByURL": "",
@@ -17,6 +17,10 @@
   "Plugins": [
 		{
 			"Name": "Niagara",
+			"Enabled": true
+		},
+		{
+			"Name": "ProceduralMeshComponent",
 			"Enabled": true
 		}
 	],

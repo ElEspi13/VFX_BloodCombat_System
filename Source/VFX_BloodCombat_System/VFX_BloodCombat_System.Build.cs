@@ -43,6 +43,8 @@ public class VFX_BloodCombat_System : ModuleRules
 				"SlateCore",
 				"Niagara",
 				"PhysicsCore",
+				// Required by the persistent UProceduralMeshComponent used for blood brush strokes.
+				"ProceduralMeshComponent",
 			}
 			);
 		
